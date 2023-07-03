@@ -1,0 +1,97 @@
+pipeline {
+  agent{
+  label "OpenShiftOnZ"
+  }
+ 
+   
+          
+  stages {
+    stage('Deploy to cluster -> one cloud') {
+      steps {
+        withCredentials([string(credentialsId: 'onecloud-sa-jenkins-token', variable: 'OCP_stoken')]){
+        script {
+	try{
+                  //def code = sh(script: """curl -L -k -I -s -w '%{code}' -H 'Authorization: Bearer \$CLUSTER_AUTH_TOKEN' \$OCP_SERVER_URL""", returnStdout: true)
+         def codeOutput = sh(script: """curl -L -k -I -s -w '\\n%{http_code}\\n' -H 'Authorization: Bearer ${OCP_stoken}' https://api.1cld-ocp6.pok.stglabs.ibm.com:6443""", returnStdout: true).trim()
+	
+	  
+	
+def response_code = codeOutput.tokenize('\n')[-1].toInteger()
+//def response_code=503
+            
+            print(response_code)
+if(response_code!=null){
+            if (response_code == 200 || response_code=="200") {
+	    
+              println "cluster is available"
+            
+             
+            
+                try {
+                    sh """
+                        oc login https://api.1cld-ocp6.pok.stglabs.ibm.com:6443 --token=$OCP_stoken  --namespace=zfw-jenkins-ocpadmins --insecure-skip-tls-verify
+                      oc project zfw-jenkins-ocpadmins
+                        oc apply -f application-deployment.yaml
+                    """
+                  
+                  // Break out of loop if deployment is successful
+                } catch (Exception e) {
+                  // Log error and continue to next cluster
+                  echo "Deployment failed on OpenShift cluster 1. Error: ${e}"
+                }
+              
+             
+            }
+            else if(response_code == 404 || response_code=="404"){
+              echo "incorrect URL"
+            }
+            else if (response_code == 401 || response_code=="401") {
+              echo "Failed to login to OpenShift cluster. Authentication failed. HTTP response code: ${response_code}"
+            } else if (response_code == 503 || response_code=="503") {
+              echo "Failed to login to OpenShift cluster. Cluster is down. HTTP response code: ${response_code}"
+              echo "Cluster is not ready"
+              env.deploy_on_failure = 'true'
+            } else {
+              echo "Failed to login to OpenShift cluster. HTTP response code: ${response_code}"
+            }
+          } else {
+            println "No matching response codes found"
+          
+	  }
+	  }
+	  catch(Exception e){
+	  println "incorrect url 404"
+	  }
+        }
+      }
+    
+   
+    }
+    }
+    stage('Deploy to cluster POK'){
+      when {
+        environment name: 'DEPLOY_ON_FAILURE', value: 'true'
+      }
+      steps {
+        withCredentials([string(credentialsId: 'ocp2onz-ocpadmins-jenkins-sa', variable: 'OCP_stoken')]){
+        script {
+          
+            try {
+                 sh """
+                        oc login https://api.apps.ocp2onz4zfw.pok.stglabs.ibm.com:6443 --token=$OCP_stoken  --namespace=zfw-jenkins-ocpadmins --insecure-skip-tls-verify
+                      oc project zfw-jenkins-ocpadmins
+                        oc apply -f application-deployment.yaml
+                    """
+              
+            } catch (Exception e) {
+              // Log error and continue to next cluster
+              echo "Deployment failed on OpenShift cluster 2. Error: ${e}"
+            }
+            // Log error if deployment fails on all clusters
+          
+        }
+      }
+    }
+    }
+	}
+}
