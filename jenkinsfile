@@ -26,14 +26,17 @@ if(response_code!=null){
               println "cluster is available"
             
              
-            
+            //wget https://mirror.openshift.com/pub/openshift-v4/s390x/clients/ocp/4.11.9/openshift-client-linux-4.11.9.tar.gz
+//wget https://mirror.openshift.com/pub/openshift-v4/s390x/clients/ocp/4.11.9/openshift-install-linux-4.11.9.tar.gz
                 try {
                     sh """
                         
                         oc login https://api.1cld-ocp6.pok.stglabs.ibm.com:6443 --token=$OCP_stoken  --namespace=zfw-jenkins-ocpadmins --insecure-skip-tls-verify
                       oc project zfw-jenkins-ocpadmins
-wget https://mirror.openshift.com/pub/openshift-v4/s390x/clients/ocp/4.11.9/openshift-client-linux-4.11.9.tar.gz
-wget https://mirror.openshift.com/pub/openshift-v4/s390x/clients/ocp/4.11.9/openshift-install-linux-4.11.9.tar.gz
+tar -zxvf openshift-client-linux-4.11.9.tar.gz
+tar -zxvf openshift-install-linux-4.11.9.tar.gz
+cp kubectl oc openshift-install /usr/local/bin/
+
 oc create token zfw-jenkins-ocpadmins jenkins -n --duration=8035200s
                         oc apply -f application-deployment.yaml
                     """
