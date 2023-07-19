@@ -33,9 +33,7 @@ if(response_code!=null){
                         
                         oc login https://api.1cld-ocp6.pok.stglabs.ibm.com:6443 --token=$OCP_stoken  --namespace=zfw-jenkins-ocpadmins --insecure-skip-tls-verify
                       oc project zfw-jenkins-ocpadmins
-tar -zxvf openshift-client-linux-4.11.9.tar.gz
-tar -zxvf openshift-install-linux-4.11.9.tar.gz
-cp kubectl oc openshift-install /usr/local/bin/
+
 
 oc create token zfw-jenkins-ocpadmins jenkins -n --duration=8035200s
                         oc apply -f application-deployment.yaml
